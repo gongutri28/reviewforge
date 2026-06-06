@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     // Free models (no credit card):
     //   llama-3.3-70b-versatile  -> recommended: best quality for academic prose
     //   llama-3.1-8b-instant     -> faster / lighter
-    const m = model || "llama-3.3-70b-versatile";
+    const m = model || "llama-3.1-8b-instant";
 
     const messages = [];
     if (system) messages.push({ role: "system", content: system });
