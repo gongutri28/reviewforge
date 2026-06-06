@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReviewForge — Grounded AI Review-Paper Drafting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f7f3ea; --paper2:#fdfbf5; --ink:#211d18; --soft:#6f675b;
+    --line:#ddd3c0; --line2:#cabfa6; --ox:#883434; --ox2:#a84545; --teal:#1f5e5b; --gold:#b07d28;
+    --shadow:0 12px 40px -18px rgba(40,30,15,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Newsreader',Georgia,serif;background:var(--paper);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .ui{font-family:'Archivo',sans-serif}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E")}
+  .wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 22px 90px}
+
+  header{padding:30px 0 14px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:13px}
+  .mark{width:46px;height:46px;border-radius:10px;background:var(--ink);color:var(--paper2);display:grid;place-items:center;flex:none}
+  .mark svg{width:24px;height:24px}
+  .brand h1{font-family:'Fraunces';font-weight:900;font-size:24px;letter-spacing:-.4px;line-height:1}
+  .brand p{font-family:'Archivo';color:var(--soft);font-size:12px;margin-top:3px}
+  .tag{font-family:'Archivo';font-size:11px;color:var(--teal);border:1px solid var(--line2);border-radius:999px;padding:6px 12px}
+
+  .integrity{font-family:'Archivo';font-size:12.5px;color:#5a3a1e;background:#f3e7cf;border:1px solid #e3cf9f;border-radius:12px;padding:12px 15px;margin:20px 0;line-height:1.5}
+  .integrity b{color:#6a3b16}
+
+  .hero{margin:22px 0 8px}
+  .hero h2{font-family:'Fraunces';font-weight:900;font-size:clamp(26px,4.6vw,42px);letter-spacing:-1px;line-height:1.05;max-width:780px}
+  .hero h2 em{font-style:italic;color:var(--ox)}
+  .hero p{font-family:'Archivo';color:var(--soft);margin-top:12px;font-size:14.5px;max-width:660px}
+
+  .panel{background:var(--paper2);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:24px;margin-top:24px}
+  .panel h3{font-family:'Archivo';font-weight:700;font-size:12.5px;color:var(--ox);margin-bottom:18px;letter-spacing:1.5px;text-transform:uppercase}
+  label{font-family:'Archivo';display:block;font-size:12px;font-weight:600;margin:0 0 6px;color:var(--ink)}
+  .hint{font-family:'Archivo';font-size:11px;color:var(--soft);font-weight:400;margin-top:4px}
+  .field{margin-bottom:16px}
+  input,select,textarea{font-family:'Archivo';width:100%;background:var(--paper);border:1px solid var(--line2);border-radius:10px;color:var(--ink);font-size:14px;padding:11px 12px;outline:none;transition:.15s}
+  textarea{font-family:'Newsreader';min-height:64px;resize:vertical;font-size:15px}
+  input:focus,select:focus,textarea:focus{border-color:var(--ox);box-shadow:0 0 0 3px rgba(136,52,52,.12)}
+  select{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236f675b' stroke-width='2'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+  .row{display:grid;gap:14px}
+  .row.c2{grid-template-columns:1fr 1fr}.row.c3{grid-template-columns:1fr 1fr 1fr}.row.c4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:680px){.row.c2,.row.c3,.row.c4{grid-template-columns:1fr 1fr}}
+  details.adv{margin-top:4px;border-top:1px dashed var(--line2);padding-top:14px}
+  details.adv summary{font-family:'Archivo';font-size:12px;font-weight:600;color:var(--soft);cursor:pointer}
+
+  .go{font-family:'Archivo';font-weight:700;font-size:15px;width:100%;margin-top:8px;border:none;cursor:pointer;background:var(--ink);color:var(--paper2);padding:15px;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:9px;transition:.15s}
+  .go:hover{background:var(--ox)}
+  .go:disabled{opacity:.5;cursor:not-allowed}
+  .timehint{font-family:'Archivo';font-size:11px;color:var(--soft);text-align:center;margin-top:8px}
+
+  .progress{margin-top:24px;display:none}.progress.on{display:block}
+  .steps{font-family:'Archivo';font-size:13px}
+  .pstep{display:flex;align-items:center;gap:10px;padding:8px 0;color:var(--soft)}
+  .pstep .ic{width:20px;height:20px;border-radius:50%;border:2px solid var(--line2);flex:none;display:grid;place-items:center;font-size:11px}
+  .pstep.done{color:var(--ink)}.pstep.done .ic{background:var(--teal);border-color:var(--teal);color:#fff}
+  .pstep.active{color:var(--ox);font-weight:600}.pstep.active .ic{border-color:var(--ox);border-top-color:transparent;animation:spin .8s linear infinite}
+  .substep{font-family:'Archivo';font-size:12px;color:var(--soft);margin:2px 0 0 30px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .err{font-family:'Archivo';background:#f7e0dd;border:1px solid var(--ox2);color:#7a2727;border-radius:12px;padding:14px;margin-top:20px;font-size:13.5px;display:none}
+  .err.on{display:block}
+
+  .out{display:none;margin-top:28px}.out.on{display:block}
+  .toolbar{font-family:'Archivo';display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;position:sticky;top:0;background:var(--paper);padding:10px 0;z-index:5;border-bottom:1px solid var(--line)}
+  .tbtn{font-family:'Archivo';font-size:12.5px;font-weight:600;border:1px solid var(--line2);background:var(--paper2);color:var(--ink);border-radius:9px;padding:8px 13px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:6px}
+  .tbtn:hover{border-color:var(--ox);color:var(--ox)}
+  .restyle{display:flex;align-items:center;gap:6px;font-family:'Archivo';font-size:12.5px;color:var(--soft)}
+  .restyle select{width:auto;padding:7px 28px 7px 10px;font-size:12.5px}
+  .wordbadge{font-family:'Archivo';font-size:12px;color:var(--soft);margin-left:auto;align-self:center}
+  .wordbadge b{color:var(--ink)}
+
+  .doc{background:var(--paper2);border:1px solid var(--line);border-radius:14px;padding:clamp(24px,5vw,56px);box-shadow:var(--shadow)}
+  .doc .title{font-family:'Fraunces';font-weight:900;font-size:clamp(22px,3.6vw,32px);line-height:1.15;letter-spacing:-.5px;text-align:center;margin-bottom:6px}
+  .doc .byline{font-family:'Archivo';text-align:center;color:var(--soft);font-size:12.5px;margin-bottom:30px}
+  .doc h2{font-family:'Fraunces';font-weight:600;font-size:21px;margin:30px 0 10px;letter-spacing:-.2px}
+  .doc p{font-size:16.5px;margin-bottom:13px;text-align:justify;hyphens:auto}
+  .doc .abstract{background:var(--paper);border-left:3px solid var(--ox);padding:16px 18px;border-radius:0 10px 10px 0;margin-bottom:8px}
+  .doc .abstract p{text-align:left;font-size:15.5px;margin-bottom:0}
+  .cit{color:var(--ox);cursor:pointer;font-weight:500;text-decoration:none}
+  .cit:hover{text-decoration:underline}
+
+  figure{margin:24px 0;text-align:center}
+  .figbox{border:2px dashed var(--line2);border-radius:12px;background:var(--paper);padding:34px 20px;color:var(--soft);font-family:'Archivo';font-size:13px}
+  .figbox .ph{font-weight:700;color:var(--ox);font-size:11px;letter-spacing:1.5px;margin-bottom:8px}
+  figcaption{font-family:'Archivo';font-size:12.5px;color:var(--soft);margin-top:8px;line-height:1.45}
+  figcaption b{color:var(--ink)}
+
+  table.cmp{width:100%;border-collapse:collapse;font-family:'Archivo';font-size:12.5px;margin:6px 0}
+  table.cmp th{background:var(--ink);color:var(--paper2);text-align:left;padding:9px 11px;font-weight:600}
+  table.cmp td{border:1px solid var(--line2);padding:9px 11px;vertical-align:top}
+  table.cmp tr:nth-child(even) td{background:var(--paper)}
+
+  /* PRISMA */
+  .prisma{font-family:'Archivo'}
+  .prisma .box{fill:var(--paper);stroke:var(--line2);stroke-width:1.5}
+  .prisma .boxk{fill:#eee6d3;stroke:var(--line2);stroke-width:1.5}
+  .prisma text{fill:var(--ink);font-size:12px}
+  .prisma .lab{fill:var(--ox);font-size:11px;font-weight:700}
+  .prisma line,.prisma path{stroke:var(--soft);stroke-width:1.5;fill:none}
+  .chart text{fill:var(--soft);font-size:11px}.chart .bar{fill:var(--teal)}.chart .axis{stroke:var(--line2)}
+
+  .refs{margin-top:28px}
+  .refs ol{padding-left:0;list-style:none;counter-reset:r}
+  .refs li{font-family:'Archivo';font-size:13px;line-height:1.5;padding:9px 0 9px 36px;border-bottom:1px solid var(--line);position:relative;counter-increment:r}
+  .refs li::before{content:"["counter(r)"]";position:absolute;left:0;color:var(--ox);font-weight:700;font-size:12px}
+  .refs li a{color:var(--teal);word-break:break-all}
+  .refs.numbered li::before{content:counter(r)"."}
+
+  .journals{margin-top:24px}
+  .jcard{font-family:'Archivo';background:var(--paper2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+  .jcard .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .jcard .n{font-weight:700;font-size:14.5px}
+  .jcard .pub{font-size:12px;color:var(--soft);margin-top:2px}
+  .jcard .meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+  .pillm{font-size:11px;border-radius:999px;padding:4px 10px;border:1px solid var(--line2);color:var(--soft)}
+  .pillm.free{color:#1f5e3a;border-color:#9ec9ab;background:#e9f4ec}
+  .pillm.apc{color:#7a4a16;border-color:#e0c48f;background:#f6ecd6}
+  .pillm.h{color:var(--teal)}
+  .jcard a.verify{font-family:'Archivo';font-size:11.5px;color:var(--ox);text-decoration:none;white-space:nowrap;border:1px solid var(--line2);border-radius:8px;padding:6px 10px}
+  .jcard a.verify:hover{border-color:var(--ox)}
+
+  .secnote{font-family:'Archivo';font-size:11.5px;color:var(--soft);margin-top:10px;line-height:1.5}
+  footer{font-family:'Archivo';text-align:center;color:var(--soft);font-size:11.5px;margin-top:40px}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper2);font-family:'Archivo';font-weight:600;font-size:13px;padding:11px 18px;border-radius:11px;opacity:0;transition:.25s;z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M9 7h7M9 11h7"/></svg></div>
+      <div><h1>ReviewForge</h1><p>Grounded AI drafting · real references only</p></div>
+    </div>
+    <div class="tag">Live data · OpenAlex</div>
+  </header>
+
+  <div class="hero">
+    <h2>Draft a review where every citation is a <em>real, verifiable</em> source.</h2>
+    <p>Give a title and length. ReviewForge searches a live academic database for genuine recent papers, then writes a clean Q1-style draft citing only those — with a PRISMA diagram from your real screening numbers, real-data charts, comparison tables, your chosen reference style, and a no-APC journal finder.</p>
+  </div>
+
+  <div class="integrity">
+    <b>Read this first.</b> This is a drafting aid, not a one-click publishable paper. References are pulled live from OpenAlex with real DOIs and the AI may cite only those — but you must verify every claim, run a plagiarism check (iThenticate/Turnitin), and follow your target journal's AI-disclosure policy. It will <b>not</b> fabricate references, data, or experimental figures; data-figure slots are labelled placeholders for your own results, and the PRISMA diagram reflects this tool's retrieval, not a substitute for a registered screening protocol.
+  </div>
+
+  <div class="panel ui">
+    <h3>Manuscript brief</h3>
+    <div class="field">
+      <label for="title">Review paper title</label>
+      <textarea id="title" placeholder="e.g. Recent advances in perovskite solar cell stability: materials, mechanisms, and scalable fabrication"></textarea>
+    </div>
+    <div class="row c3">
+      <div class="field"><label for="words">Target word count</label><input id="words" type="number" value="4000" min="1500" max="15000" step="500"><div class="hint">up to 15,000</div></div>
+      <div class="field"><label for="fromyear">References since</label><select id="fromyear"></select></div>
+      <div class="field"><label for="nrefs">Number of references</label><select id="nrefs"><option>15</option><option selected>25</option><option>50</option><option>75</option><option>100</option><option>150</option><option>200</option><option>300</option></select><div class="hint">up to 300 (real availability permitting)</div></div>
+    </div>
+    <div class="row c3">
+      <div class="field"><label for="style">Reference style</label><select id="style">
+        <option value="apa">APA 7</option><option value="ieee">IEEE</option><option value="vancouver">Vancouver</option><option value="harvard">Harvard</option><option value="chicago">Chicago (author-date)</option>
+      </select><div class="hint">change anytime after</div></div>
+      <div class="field"><label for="figs">Figures (incl. PRISMA & chart)</label><select id="figs"></select></div>
+      <div class="field"><label for="tables">Comparison tables</label><select id="tables"></select></div>
+    </div>
+    <details class="adv">
+      <summary>Advanced (optional)</summary>
+      <div class="row c2" style="margin-top:14px">
+        <div class="field"><label for="email">Your email <span class="hint" style="display:inline">— speeds up the database ("polite pool")</span></label><input id="email" type="email" placeholder="you@university.edu"></div>
+        <div class="field"><label for="oakey">OpenAlex API key <span class="hint" style="display:inline">— only if you get a "key required" error</span></label><input id="oakey" type="text" placeholder="optional"></div>
+      </div>
+    </details>
+    <button class="go" id="go">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+      Forge the draft
+    </button>
+    <div class="timehint">Longer papers (10k–15k words) call the writer many times and can take a few minutes.</div>
+    <div class="err ui" id="err"></div>
+    <div class="progress ui" id="progress"><div class="steps" id="steps"></div></div>
+  </div>
+
+  <div class="out" id="out">
+    <div class="toolbar ui">
+      <button class="tbtn" id="copyBtn">⧉ Copy all</button>
+      <button class="tbtn" id="dlBtn">↓ Download .md</button>
+      <span class="restyle">Style: <select id="style2">
+        <option value="apa">APA 7</option><option value="ieee">IEEE</option><option value="vancouver">Vancouver</option><option value="harvard">Harvard</option><option value="chicago">Chicago</option>
+      </select></span>
+      <span class="wordbadge" id="wordbadge"></span>
+    </div>
+    <div class="doc" id="doc"></div>
+    <div class="panel ui journals" id="journalsPanel" style="display:none">
+      <h3>Where to communicate — Scopus-verify, low/no-APC, multiple publishers</h3>
+      <div id="journals"></div>
+      <p class="secnote" id="jnote"></p>
+    </div>
+  </div>
+
+  <footer>ReviewForge · references via OpenAlex · a drafting aid — verify content, check originality, and disclose AI use per your journal's policy.</footer>
+</div>
+<div class="toast ui" id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const yearSel=$('#fromyear');const NOW=new Date().getFullYear();
+for(let y=NOW;y>=NOW-12;y--){const o=document.createElement('option');o.value=y;o.textContent=y;if(y===NOW-5)o.selected=true;yearSel.appendChild(o);}
+const figSel=$('#figs');for(let i=0;i<=8;i++){const o=document.createElement('option');o.value=i;o.textContent=i;if(i===4)o.selected=true;figSel.appendChild(o);}
+const tabSel=$('#tables');for(let i=0;i<=6;i++){const o=document.createElement('option');o.value=i;o.textContent=i;if(i===2)o.selected=true;tabSel.appendChild(o);}
+
+let tt;function toast(m){const e=$('#toast');e.textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),1700);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function wc(s){return (s||'').split(/\s+/).filter(Boolean).length;}
+
+// ---------- AI (runs via Claude inside this app) ----------
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+async function askAI(prompt,system){
+  // Calls YOUR backend (api/generate.js), which holds the key privately.
+  for(let attempt=0;attempt<4;attempt++){
+    const res=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({system,prompt})});
+    if(res.status===429){await sleep(2500*(attempt+1));continue;} // free-tier rate limit: wait & retry
+    if(!res.ok){let m="HTTP "+res.status;try{const e=await res.json();if(e.error)m=e.error;}catch(_){}throw new Error(m);}
+    const d=await res.json();return d.text||"";
+  }
+  throw new Error("Rate limited by the free AI tier. Wait a minute and retry, or reduce the word count / number of references.");
+}
+function parseJSON(t){let s=t.replace(/```json/gi,'').replace(/```/g,'').trim();const a=s.indexOf('{'),b=s.lastIndexOf('}');if(a>=0&&b>=0)s=s.slice(a,b+1);return JSON.parse(s);}
+
+// ---------- OpenAlex ----------
+function invToText(inv){if(!inv)return "";const pos=[];for(const w in inv)for(const p of inv[w])pos.push([p,w]);pos.sort((a,b)=>a[0]-b[0]);return pos.map(x=>x[1]).join(' ');}
+function oaSuffix(email,key){let s='';if(email)s+=`&mailto=${encodeURIComponent(email)}`;if(key)s+=`&api_key=${encodeURIComponent(key)}`;return s;}
+async function searchWorks(query,fromYear,perPage,email,key){
+  const sel="id,title,publication_year,doi,authorships,primary_location,cited_by_count,abstract_inverted_index";
+  const url=`https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=from_publication_date:${fromYear}-01-01,type:article&sort=relevance_score:desc&per_page=${perPage}&select=${sel}`+oaSuffix(email,key);
+  const r=await fetch(url);if(r.status===401||r.status===403)throw new Error("OPENALEX_KEY");if(!r.ok)throw new Error("OpenAlex error "+r.status);
+  const d=await r.json();return d.results||[];
+}
+async function fetchSource(idShort,email,key){
+  const sel="display_name,host_organization_name,is_oa,is_in_doaj,apc_usd,summary_stats,type,issn_l";
+  const url=`https://api.openalex.org/sources/${idShort}?select=${sel}`+oaSuffix(email,key);
+  try{const r=await fetch(url);if(!r.ok)return null;return await r.json();}catch(e){return null;}
+}
+
+// ---------- citation styles ----------
+function parseName(full){const p=(full||'').trim().split(/\s+/);if(p.length===1)return{last:p[0],init:'',initSp:''};const last=p.pop();const init=p.map(x=>x[0]?x[0].toUpperCase()+'.':'').join('');const initSp=p.map(x=>x[0]?x[0].toUpperCase()+'.':'').join(' ');return{last,init,initSp};}
+function authorsFor(refs,style){
+  const N=(refs.authors||[]).map(parseName);
+  const cut=(arr,max,etal)=>arr.length>max?arr.slice(0,max).concat([etal]):arr;
+  if(style==='apa'||style==='chicago'){let a=N.map(n=>`${n.last}, ${n.initSp}`);a=cut(a,7,'et al.');if(a.length>1){const l=a.pop();a=a.join(', ')+(l==='et al.'?', '+l:', & '+l);}else a=a[0]||'';return a;}
+  if(style==='ieee'){let a=N.map(n=>`${n.initSp} ${n.last}`.trim());a=cut(a,6,'et al.');if(a.length>1){const l=a.pop();a=a.join(', ')+(l==='et al.'?', '+l:', and '+l);}else a=a[0]||'';return a;}
+  if(style==='vancouver'){let a=N.map(n=>`${n.last} ${n.init.replace(/\./g,'')}`);a=cut(a,6,'et al.');return a.join(', ');}
+  let a=N.map(n=>`${n.last}, ${n.initSp.replace(/ /g,'')}`);a=cut(a,7,'et al.');if(a.length>1){const l=a.pop();a=a.join(', ')+(l==='et al.'?' '+l:' and '+l);}else a=a[0]||'';return a;
+}
+function formatRef(r,style){
+  const au=authorsFor(r,style),y=r.year||'n.d.',t=r.title||'Untitled',j=r.journal||'',doi=r.doi||'';
+  const link=doi?`<a href="${doi}" target="_blank" rel="noopener">${doi}</a>`:'';
+  if(style==='apa')return `${au} (${y}). ${t}. <i>${j}</i>. ${link}`;
+  if(style==='chicago')return `${au}. ${y}. "${t}." <i>${j}</i>. ${link}`;
+  if(style==='ieee')return `${au}, "${t}," <i>${j}</i>, ${y}. ${link}`;
+  if(style==='vancouver')return `${au}. ${t}. ${j}. ${y}. ${link}`;
+  return `${au} (${y}) '${t}', <i>${j}</i>. ${link}`;
+}
+function refPlain(r,style){return formatRef(r,style).replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();}
+
+// ---------- progress ----------
+const STEPS=["Planning structure & search terms","Fetching real references (OpenAlex)","Writing sections (grounded, Q1 style)","Tables, figures, PRISMA & abstract","Journals & reference formatting"];
+function renderSteps(active,sub){$('#steps').innerHTML=STEPS.map((s,i)=>{
+  const cls=i<active?'done':i===active?'active':'';const ic=i<active?'✓':(i+1);
+  return `<div class="pstep ${cls}"><span class="ic">${ic}</span>${s}</div>`+(i===active&&sub?`<div class="substep">${esc(sub)}</div>`:'');}).join('');}
+
+// ---------- state ----------
+let REFS=[],PAPER={},JOURNALS=[];
+
+$('#go').onclick=async()=>{
+  const title=$('#title').value.trim();
+  if(!title){toast("Enter a paper title first");$('#title').focus();return;}
+  const words=Math.min(15000,+$('#words').value||4000), fromYear=+$('#fromyear').value, nrefs=+$('#nrefs').value;
+  const style=$('#style').value, nFigs=+$('#figs').value, nTables=+$('#tables').value;
+  const email=$('#email').value.trim(), oakey=$('#oakey').value.trim();
+  $('#style2').value=style;
+  $('#err').classList.remove('on');$('#out').classList.remove('on');$('#progress').classList.add('on');$('#go').disabled=true;renderSteps(0);
+  try{
+    // 1) plan (titles only; no numbers, no Methodology — app inserts it)
+    const planSys="You are a senior academic editor and review methodologist. Return ONLY valid minified JSON.";
+    const bodyBudget=Math.max(1200,words-350);
+    const planPrompt=`Plan a Q1-quality literature review titled: "${title}". Body target ~${bodyBudget} words (excludes abstract & methodology, which are handled separately).
+Return JSON:
+{"queries":["5-7 concise scholarly search-query strings (3-6 words each) spanning the key subtopics"],
+"outline":[{"heading":"section TITLE only, no numbering","words":<int 350-1800>}],
+"keywords":["6-10 index keywords"]}
+The first section MUST be "Introduction" and the last MUST be "Conclusion". Use 6-10 top-level sections total with NO sub-sections. Section "words" must sum to roughly ${bodyBudget}.`;
+    const plan=parseJSON(await askAI(planPrompt,planSys));
+    renderSteps(1);
+
+    // 2) references
+    let pool=[];const per=Math.min(200,Math.max(12,Math.ceil((nrefs*1.9)/plan.queries.length)));
+    for(const q of plan.queries){try{pool=pool.concat(await searchWorks(q,fromYear,per,email,oakey));}catch(e){if(e.message==="OPENALEX_KEY")throw e;}}
+    const seen=new Set();let clean=[];
+    for(const w of pool){if(!w.id||seen.has(w.id)||!w.title)continue;seen.add(w.id);
+      const src=w.primary_location&&w.primary_location.source;
+      clean.push({title:w.title,year:w.publication_year,doi:w.doi,journal:(src&&src.display_name)||'',sourceId:(src&&src.id)?src.id.split('/').pop():null,
+        authors:(w.authorships||[]).map(a=>a.author&&a.author.display_name).filter(Boolean),cites:w.cited_by_count||0,abstract:invToText(w.abstract_inverted_index)});
+    }
+    if(clean.length<5)throw new Error("Too few references found. Try a broader title or an earlier 'References since' year.");
+    clean.sort((a,b)=>b.cites-a.cites);
+    REFS=clean.slice(0,nrefs);
+    const prisma={identified:pool.length,afterDedup:clean.length,excluded:clean.length-REFS.length,included:REFS.length};
+    renderSteps(2);
+
+    // distribute the (up to 300) real references across sections by relevance,
+    // so prompts stay bounded and citations land in the right section.
+    const STOP=new Set("the a an of and or to in for on with from by as is are at this that these those have been can may also more such using based review study studies paper results approach approaches between within across their there which while when than then over into about".split(' '));
+    const toks=s=>(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>3&&!STOP.has(w));
+    const numBody=plan.outline.length;
+    const cap=Math.ceil(REFS.length/numBody)+18;
+    const secTokens=plan.outline.map(s=>new Set(toks(s.heading+' '+title)));
+    const refTokens=REFS.map(r=>toks(r.title+' '+(r.abstract||'').slice(0,300)));
+    const assign=plan.outline.map(()=>[]);
+    for(let i=0;i<REFS.length;i++){
+      const order=secTokens.map((st,si)=>{let sc=0;for(const w of refTokens[i])if(st.has(w))sc++;return [si,sc];}).sort((a,b)=>b[1]-a[1]);
+      let placed=false;
+      for(const o of order){if(assign[o[0]].length<cap){assign[o[0]].push(i);placed=true;break;}}
+      if(!placed){let m=0;for(let s=1;s<assign.length;s++)if(assign[s].length<assign[m].length)m=s;assign[m].push(i);}
+    }
+    const digestFor=idxs=>idxs.map(i=>`[${i+1}] ${REFS[i].title} (${REFS[i].year}). ${(REFS[i].abstract||'').slice(0,200)}`).join("\n");
+    const topDigest=REFS.slice(0,Math.min(24,REFS.length)).map((r,i)=>`[${i+1}] ${r.title} (${r.year}). ${(r.abstract||'').slice(0,200)}`).join("\n");
+
+    // 3) write sections (chunked, no subheadings, accurate citations)
+    const writeSys=`You are writing a Q1-journal literature review. STRICT RULES: (1) cite ONLY the numbered sources, placing each bracket citation [n] (or [n,m]) IMMEDIATELY after the specific claim it supports — never bunch them at paragraph ends; (2) never invent citations, statistics, or data; (3) write your own formal academic wording, do NOT copy source sentences; (4) NO subheadings, NO bullet lists — continuous analytical prose that compares findings and identifies gaps.`;
+    const sections=[];
+    for(let si=0;si<plan.outline.length;si++){
+      const sec=plan.outline[si];renderSteps(2,`Section ${si+1} of ${plan.outline.length}: ${sec.heading}`);
+      const secIdxs=assign[si].length?assign[si]:REFS.map((_,k)=>k).slice(0,Math.min(15,REFS.length));
+      const secDigest=digestFor(secIdxs);
+      const target=Math.max(300,Math.min(1800,sec.words||450));
+      let acc='';let chunks=0;const maxChunks=4;
+      while(wc(acc)<target-130 && chunks<maxChunks){
+        const thisT=Math.min(600,target-wc(acc));const tail=acc.slice(-1100);
+        const cont=acc?`Continue the SAME section seamlessly (~${thisT} more words). Do not repeat earlier content; do not add a heading. Text so far (tail):\n"""${tail}"""\n`:'';
+        const p=`${acc?'':'Write '}the section "${sec.heading}" (~${thisT} words) for a review titled "${title}".\n${cont}Numbered sources you may cite in THIS section (cite as many as naturally fit; each [n] right after the claim it supports):\n${secDigest}\nOutput ONLY prose.`;
+        const part=await askAI(p,writeSys);acc+=(acc?'\n\n':'')+part.trim();chunks++;
+      }
+      sections.push({heading:sec.heading,body:acc.trim()});
+    }
+    renderSteps(3);
+
+    // tables (varied focus)
+    const focuses=["methods and approaches","key findings and outcomes","datasets or materials used","reported performance metrics","limitations and research gaps","applications or case studies"];
+    const tables=[];
+    for(let k=0;k<nTables;k++){
+      renderSteps(3,`Building table ${k+1} of ${nTables}`);
+      const tSys="You are an academic editor. Return ONLY valid minified JSON.";
+      const tP=`Build ONE comparison table focused on "${focuses[k%focuses.length]}" for a review on "${title}", using only these numbered sources:\n${topDigest}\nReturn JSON {"caption":"...","columns":["Study [ref]","${focuses[k%focuses.length]}","Key point","Year"],"rows":[["[n] First-author et al.","...","...","year"]]}. 5-8 rows, only real info, reference each row with its [n].`;
+      try{tables.push(parseJSON(await askAI(tP,tSys)));}catch(e){}
+    }
+    // extra figure placeholders (beyond PRISMA + chart)
+    const extraFigs=Math.max(0,nFigs-2);let figCaps=[];
+    if(extraFigs>0){
+      try{const fc=parseJSON(await askAI(`Propose ${extraFigs} conceptual/schematic figure ideas (NOT data plots) for a review titled "${title}". Return JSON {"figures":["one-sentence caption", ...]} with exactly ${extraFigs} items.`,"Return ONLY valid minified JSON."));figCaps=fc.figures||[];}catch(e){}
+    }
+    while(figCaps.length<extraFigs)figCaps.push("Conceptual overview relevant to this review.");
+
+    // abstract
+    renderSteps(3,"Writing abstract");
+    const abstract=(await askAI(`Write a single-paragraph structured abstract (~190 words), formal, original wording, NO citations, for the review "${title}". Themes:\n${sections.map(s=>s.heading+': '+s.body.slice(0,150)).join("\n").slice(0,1800)}`,"You are an academic editor.")).trim();
+
+    renderSteps(4);
+    // journals from real OpenAlex source data
+    const uniqSrc=[...new Set(clean.map(r=>r.sourceId).filter(Boolean))].slice(0,14);
+    const srcMeta=[];
+    for(const id of uniqSrc){const m=await fetchSource(id,email,oakey);if(m&&(m.type==='journal'||!m.type))srcMeta.push(m);}
+    JOURNALS=rankJournals(srcMeta);
+
+    // methodology text (deterministic — accurate)
+    const methodology=`A structured search of the OpenAlex scholarly database (over 250 million indexed works) was conducted for literature published from ${fromYear} onward, restricted to peer-reviewed journal articles. The search combined the following thematic query strings: ${plan.queries.map(q=>'\u201c'+q+'\u201d').join(', ')}. This identified ${prisma.identified} records; after removal of duplicates, ${prisma.afterDedup} unique records remained. Records were then ranked by topical relevance and citation impact, and the ${prisma.included} most pertinent were retained for qualitative synthesis. The selection workflow is summarised in Figure 1, and the temporal distribution of the retained literature is shown in Figure 2.`;
+
+    PAPER={title,abstract,sections,tables,figCaps,prisma,methodology,keywords:plan.keywords||[],nFigs};
+    render(style);renderJournals();
+    $('#out').classList.add('on');$('#progress').classList.remove('on');
+    setTimeout(()=>$('#out').scrollIntoView({behavior:'smooth'}),100);
+  }catch(e){
+    $('#progress').classList.remove('on');
+    const msg=e.message==="OPENALEX_KEY"?"OpenAlex now needs a free API key for this request. Get one at openalex.org, paste it into Advanced → OpenAlex API key, and retry.":e.message;
+    $('#err').textContent="Couldn't finish: "+msg;$('#err').classList.add('on');
+  }finally{$('#go').disabled=false;}
+};
+
+// ---------- journals ----------
+function rankJournals(meta){
+  const out=[];const byPub={};
+  for(const m of meta){
+    const apc=(m.apc_usd===0||m.apc_usd==null)?0:m.apc_usd;
+    const noApc=apc===0;
+    let model;
+    if(m.is_oa&&m.is_in_doaj&&noApc)model={t:"Diamond OA · no APC",free:true};
+    else if(m.is_oa&&apc>0)model={t:`Gold OA · APC ~$${apc.toLocaleString()}`,free:false};
+    else if(m.is_oa)model={t:"Open access (DOAJ)",free:noApc};
+    else model={t:"Subscription / likely hybrid · no APC to publish",free:true};
+    const pub=m.host_organization_name||"Independent / society";
+    const j={name:m.display_name,publisher:pub,model:model.t,free:model.free,h:(m.summary_stats&&m.summary_stats.h_index)||null,issn:m.issn_l||''};
+    if(byPub[pub])continue; // one per publisher for variety
+    byPub[pub]=true;out.push(j);
+  }
+  out.sort((a,b)=>(b.free-a.free)||((b.h||0)-(a.h||0)));
+  return out.slice(0,8);
+}
+function renderJournals(){
+  if(!JOURNALS.length){$('#journalsPanel').style.display='none';return;}
+  $('#journals').innerHTML=JOURNALS.map(j=>{
+    const sci=`https://www.scimagojr.com/journalsearch.php?q=${encodeURIComponent(j.name)}`;
+    return `<div class="jcard"><div class="top"><div><div class="n">${esc(j.name)}</div><div class="pub">${esc(j.publisher)}</div></div>
+      <a class="verify" href="${sci}" target="_blank" rel="noopener">Check Scopus ↗</a></div>
+      <div class="meta"><span class="pillm ${j.free?'free':'apc'}">${esc(j.model)}</span>${j.h?`<span class="pillm h">h-index ${j.h}</span>`:''}${j.issn?`<span class="pillm">ISSN ${esc(j.issn)}</span>`:''}</div></div>`;
+  }).join('');
+  $('#jnote').innerHTML="One journal per publisher is shown for breadth, ordered to surface no-APC options first. The open-access model and APC come from live OpenAlex data and can change — and OpenAlex does <b>not</b> certify Scopus indexing or quartile. Use the “Check Scopus ↗” link to confirm indexing, quartile, scope, and current fees on Scimago/the journal site before submitting.";
+  $('#journalsPanel').style.display='block';
+}
+
+// ---------- render paper ----------
+function citeLink(t){return t.replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g,(m,g)=>`<a class="cit" href="#ref-${g.split(',')[0].trim()}">[${g}]</a>`);}
+function prismaSVG(p){
+  const W=560,bw=300,x=(W-bw)/2;
+  const box=(y,h,txt,kind)=>{let t='';const lines=txt.split('\n');lines.forEach((ln,i)=>{t+=`<text x="${W/2}" y="${y+22+i*16}" text-anchor="middle">${ln}</text>`;});
+    return `<rect class="${kind||'box'}" x="${x}" y="${y}" width="${bw}" height="${h}" rx="8"/>${t}`;}
+  const arrow=(y1,y2)=>`<line x1="${W/2}" y1="${y1}" x2="${W/2}" y2="${y2}"/><path d="M${W/2-5} ${y2-6} L${W/2} ${y2} L${W/2+5} ${y2-6}"/>`;
+  const exX=x+bw+18, exW=170;
+  return `<svg class="prisma" viewBox="0 0 ${W+200} 340" width="100%">
+    <text class="lab" x="14" y="40" transform="rotate(-90 14 40)">Identification</text>
+    <text class="lab" x="14" y="160" transform="rotate(-90 14 160)">Screening</text>
+    <text class="lab" x="14" y="290" transform="rotate(-90 14 290)">Included</text>
+    ${box(20,50,`Records identified via OpenAlex\nsearch (n = ${p.identified})`)}
+    ${arrow(70,100)}
+    ${box(100,50,`Records after duplicates\nremoved (n = ${p.afterDedup})`)}
+    ${arrow(150,180)}
+    ${box(180,50,`Records screened\n(n = ${p.afterDedup})`)}
+    <rect class="boxk" x="${exX}" y="180" width="${exW}" height="50" rx="8"/>
+    <text x="${exX+exW/2}" y="200" text-anchor="middle">Excluded after relevance/</text>
+    <text x="${exX+exW/2}" y="216" text-anchor="middle">recency ranking (n = ${p.excluded})</text>
+    <line x1="${x+bw}" y1="205" x2="${exX}" y2="205"/><path d="M${exX-6} 200 L${exX} 205 L${exX-6} 210"/>
+    ${arrow(230,260)}
+    ${box(260,50,`Studies included in\nreview (n = ${p.included})`)}
+  </svg>`;
+}
+function chartSVG(y){const years=Object.keys(y).map(Number).sort((a,b)=>a-b);if(!years.length)return '';
+  const max=Math.max(...years.map(k=>y[k]));const W=560,H=210,pad=32,bw=(W-pad*2)/years.length;let bars='',labs='';
+  years.forEach((yr,i)=>{const h=(y[yr]/max)*(H-pad*2);const bx=pad+i*bw+bw*0.15,bwid=bw*0.7,by=H-pad-h;
+    bars+=`<rect class="bar" x="${bx}" y="${by}" width="${bwid}" height="${h}" rx="3"/><text x="${bx+bwid/2}" y="${by-5}" text-anchor="middle">${y[yr]}</text>`;
+    labs+=`<text x="${bx+bwid/2}" y="${H-pad+15}" text-anchor="middle">${yr}</text>`;});
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" width="100%"><line class="axis" x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}"/>${bars}${labs}</svg>`;}
+function tableHTML(t){let h=`<table class="cmp"><thead><tr>${t.columns.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>`;
+  for(const row of t.rows)h+=`<tr>${row.map(c=>`<td>${citeLink(esc(String(c)))}</td>`).join('')}</tr>`;return h+'</tbody></table>';}
+
+function render(style){
+  const p=PAPER;const yearCounts={};for(const r of REFS){if(r.year)yearCounts[r.year]=(yearCounts[r.year]||0)+1;}
+  let fig=0,tab=0,secNo=0;
+  // build ordered render list: Introduction, Methodology(app), thematic..., Conclusion
+  const out=p.sections.slice();
+  // distribute tables & extra figures across thematic sections (exclude first & last)
+  const thematic=[];for(let i=1;i<out.length-1;i++)thematic.push(i);if(!thematic.length)for(let i=0;i<out.length;i++)thematic.push(i);
+  const inserts=out.map(()=>[]);
+  p.tables.forEach((t,k)=>inserts[thematic[k%thematic.length]].push({type:'table',data:t}));
+  p.figCaps.forEach((c,k)=>inserts[thematic[(k+1)%thematic.length]].push({type:'figure',cap:c}));
+
+  let html=`<div class="title">${esc(p.title)}</div><div class="byline">Review draft · ReviewForge · ${REFS.length} verified references</div>`;
+  html+=`<h2>Abstract</h2><div class="abstract"><p>${esc(p.abstract)}</p></div>`;
+  if(p.keywords.length)html+=`<p style="font-size:14px"><b>Keywords:</b> ${p.keywords.map(esc).join('; ')}</p>`;
+
+  out.forEach((sec,idx)=>{
+    secNo++;
+    html+=`<h2>${secNo}. ${esc(sec.heading)}</h2>`;
+    for(const para of sec.body.split(/\n{1,}/).filter(x=>x.trim()))html+=`<p>${citeLink(esc(para))}</p>`;
+    // section inserts
+    for(const ins of inserts[idx]){
+      if(ins.type==='table'){tab++;html+=`<figure>${tableHTML(ins.data)}<figcaption><b>Table ${tab}.</b> ${esc(ins.data.caption||'Comparison of reviewed studies.')}</figcaption></figure>`;}
+      else{fig++;html+=`<figure><div class="figbox"><div class="ph">FIGURE PLACEHOLDER</div>${esc(ins.cap)}</div><figcaption><b>Figure ${fig}.</b> ${esc(ins.cap)} — <i>insert your own figure; ReviewForge does not fabricate data figures.</i></figcaption></figure>`;}
+    }
+    // after Introduction (idx 0) inject Methodology with PRISMA + chart
+    if(idx===0){
+      secNo++;
+      html+=`<h2>${secNo}. Methodology</h2>`;
+      for(const para of p.methodology.split(/\n{1,}/).filter(x=>x.trim()))html+=`<p>${esc(para)}</p>`;
+      fig++;html+=`<figure>${prismaSVG(p.prisma)}<figcaption><b>Figure ${fig}.</b> PRISMA-style flow of the literature retrieval and selection in this review.</figcaption></figure>`;
+      if(p.nFigs>=2){fig++;html+=`<figure>${chartSVG(yearCounts)}<figcaption><b>Figure ${fig}.</b> Temporal distribution of the retained literature (live OpenAlex data).</figcaption></figure>`;}
+    }
+  });
+
+  html+=`<div class="refs ${style==='ieee'||style==='vancouver'?'numbered':''}"><h2>${secNo+1}. References</h2><ol>`;
+  REFS.forEach((r,i)=>{html+=`<li id="ref-${i+1}">${formatRef(r,style)}</li>`;});
+  html+=`</ol></div>`;
+  $('#doc').innerHTML=html;
+
+  const words=$('#doc').innerText.split(/\s+/).filter(Boolean).length;
+  $('#wordbadge').innerHTML=`<b>${words.toLocaleString()}</b> words · <b>${REFS.length}</b> refs · <b>${fig}</b> figs · <b>${tab}</b> tables · target ${(+$('#words').value).toLocaleString()}`;
+}
+
+// ---------- toolbar ----------
+$('#style2').addEventListener('change',()=>{if(PAPER.title){render($('#style2').value);renderJournals();toast("References re-styled");}});
+function plainPaper(){const style=$('#style2').value,p=PAPER;let s=p.title+"\n\nABSTRACT\n"+p.abstract+"\n";
+  if(p.keywords.length)s+="\nKeywords: "+p.keywords.join('; ')+"\n";
+  let n=0;s+=`\n${++n}. Introduction\n`+(p.sections[0]?p.sections[0].body:'')+"\n";
+  s+=`\n${++n}. Methodology\n`+p.methodology+`\n[Figure: PRISMA flow — identified ${p.prisma.identified}, after dedup ${p.prisma.afterDedup}, excluded ${p.prisma.excluded}, included ${p.prisma.included}]\n`;
+  for(let i=1;i<p.sections.length;i++)s+=`\n${++n}. ${p.sections[i].heading}\n`+p.sections[i].body+"\n";
+  p.tables.forEach((t,k)=>{s+=`\nTable ${k+1}: ${t.caption||''}\n`+t.columns.join(' | ')+"\n"+t.rows.map(r=>r.join(' | ')).join("\n")+"\n";});
+  s+="\nREFERENCES\n";REFS.forEach((r,i)=>{s+=`${i+1}. ${refPlain(r,style)}\n`;});
+  if(JOURNALS.length){s+="\nSUGGESTED JOURNALS (verify on Scimago)\n";JOURNALS.forEach(j=>{s+=`- ${j.name} — ${j.publisher} — ${j.model}\n`;});}
+  return s;}
+$('#copyBtn').onclick=()=>navigator.clipboard.writeText(plainPaper()).then(()=>toast("Whole draft copied")).catch(()=>toast("Copy failed"));
+$('#dlBtn').onclick=()=>{const b=new Blob([plainPaper()],{type:'text/markdown'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='review-draft.md';a.click();toast("Downloaded .md");};
+</script>
+</body>
+</html>

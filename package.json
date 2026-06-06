@@ -1,0 +1,9 @@
+{
+  "name": "reviewforge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Grounded AI review-paper drafting — real references via OpenAlex, writing via Groq",
+  "engines": {
+    "node": ">=18"
+  }
+}
