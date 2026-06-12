@@ -153,11 +153,25 @@
   </div>
 
   <div class="panel ui">
-    <h3>Manuscript brief</h3>
+    <h3>What are we writing?</h3>
+    <div class="row c2">
+      <div class="field"><label for="mode">Document type</label><select id="mode">
+        <option value="review">Review paper (referenced)</option>
+        <option value="research">Research paper scaffold (referenced)</option>
+        <option value="editorial">Editorial / Opinion (referenced)</option>
+        <option value="chapter">Book chapter (referenced)</option>
+        <option value="bookreview">Book review (no references)</option>
+        <option value="creative">Creative — novel / story chapter (no references)</option>
+      </select></div>
+      <div class="field"><label for="lang">Language</label><select id="lang">
+        <option>English</option><option>Hindi</option><option>Assamese</option><option>Bengali</option><option>Spanish</option><option>French</option><option>German</option><option>Arabic</option><option>Portuguese</option><option>Chinese (Simplified)</option><option>Japanese</option>
+      </select></div>
+    </div>
     <div class="field">
-      <label for="title">Review paper title</label>
+      <label for="title" id="titleLabel">Title</label>
       <textarea id="title" placeholder="e.g. Recent advances in perovskite solar cell stability: materials, mechanisms, and scalable fabrication"></textarea>
     </div>
+    <div id="acadOpts">
     <div class="row c3">
       <div class="field"><label for="words">Target word count</label><input id="words" type="number" value="4000" min="1500" max="15000" step="500"><div class="hint">up to 15,000</div></div>
       <div class="field"><label for="fromyear">References since</label><select id="fromyear"></select></div>
@@ -177,13 +191,28 @@
         <div class="field"><label for="oakey">OpenAlex API key <span class="hint" style="display:inline">— only if you get a "key required" error</span></label><input id="oakey" type="text" placeholder="optional"></div>
       </div>
     </details>
+    </div><!-- /acadOpts -->
     <button class="go" id="go">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
       Forge the draft
     </button>
-    <div class="timehint">Longer papers (10k–15k words) call the writer many times and can take a few minutes.</div>
+    <div class="timehint">Tip: the free tier's sweet spot is ~3,000–6,000 words. Larger papers (10k+) make many calls, take several minutes, and may get rate-limited — the app keeps whatever it finished, so you can re-run or generate in parts.</div>
     <div class="err ui" id="err"></div>
     <div class="progress ui" id="progress"><div class="steps" id="steps"></div></div>
+  </div>
+
+  <div class="panel ui">
+    <h3>Find target journals & calls for papers</h3>
+    <p class="panel-sub" style="font-family:'Archivo';color:var(--soft);font-size:13px;margin:-8px 0 16px">Enter a subject/theme. This finds <b>real</b> journals from live data, can filter to APC-free, and links you to the publishers' genuine open calls. It never invents listings or deadlines.</p>
+    <div class="row c3">
+      <div class="field"><label for="dTheme">Subject / theme</label><input id="dTheme" type="text" placeholder="e.g. machine learning in healthcare"></div>
+      <div class="field"><label for="dApc">Fee filter</label><select id="dApc"><option value="free">APC-free only</option><option value="any">Any (show APC if charged)</option></select></div>
+      <div class="field"><label for="dTier">Min impact (rough tier)</label><select id="dTier"><option value="0">Any</option><option value="40">Higher impact only</option></select></div>
+    </div>
+    <button class="go" id="dGo" style="background:var(--teal)">🔎 Find journals & open calls</button>
+    <div class="err ui" id="dErr"></div>
+    <div id="dResults" style="margin-top:18px"></div>
+    <div id="dCFP" style="margin-top:8px"></div>
   </div>
 
   <div class="out" id="out">
@@ -214,22 +243,39 @@ for(let y=NOW;y>=NOW-12;y--){const o=document.createElement('option');o.value=y;
 const figSel=$('#figs');for(let i=0;i<=8;i++){const o=document.createElement('option');o.value=i;o.textContent=i;if(i===4)o.selected=true;figSel.appendChild(o);}
 const tabSel=$('#tables');for(let i=0;i<=6;i++){const o=document.createElement('option');o.value=i;o.textContent=i;if(i===2)o.selected=true;tabSel.appendChild(o);}
 
+// ---------- document modes ----------
+const MODES={
+  review:   {label:"review paper",        refs:true,  prisma:true,  journals:true,  titleLabel:"Review paper title", ph:"e.g. Recent advances in perovskite solar cell stability"},
+  research: {label:"research paper",       refs:true,  prisma:false, journals:true,  titleLabel:"Research paper title", ph:"e.g. A lightweight CNN for on-device medical image triage"},
+  editorial:{label:"editorial / opinion",  refs:true,  prisma:false, journals:true,  titleLabel:"Editorial title / topic", ph:"e.g. The case for open peer review in materials science"},
+  chapter:  {label:"book chapter",         refs:true,  prisma:false, journals:false, titleLabel:"Chapter title", ph:"e.g. Foundations of reinforcement learning for robotics"},
+  bookreview:{label:"book review",         refs:false, prisma:false, journals:false, titleLabel:"Book title & author to review", ph:"e.g. 'Sapiens' by Yuval Noah Harari"},
+  creative: {label:"creative chapter",     refs:false, prisma:false, journals:false, titleLabel:"Story / novel premise or chapter brief", ph:"e.g. A lighthouse keeper finds a letter addressed to her from 50 years in the future"}
+};
+function curMode(){return MODES[$('#mode').value];}
+function applyMode(){const m=curMode();$('#titleLabel').textContent=m.titleLabel;$('#title').setAttribute('placeholder',m.ph);$('#acadOpts').style.display=m.refs?'block':'none';
+  $('#go').lastChild.textContent=m.refs?' Forge the draft':' Write it';}
+$('#mode').addEventListener('change',applyMode);applyMode();
+
 let tt;function toast(m){const e=$('#toast');e.textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),1700);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function wc(s){return (s||'').split(/\s+/).filter(Boolean).length;}
 
 // ---------- AI (runs via Claude inside this app) ----------
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
-async function askAI(prompt,system){
-  // Calls YOUR backend (api/generate.js), which holds the key privately.
-  for(let attempt=0;attempt<4;attempt++){
+let _lastCall=0;const _GAP=3000; // pace calls to stay under free-tier per-minute limits
+const M_STRUCT="llama-3.3-70b-versatile"; // stronger model for the few structure/JSON calls
+async function askAI(prompt,system,model){
+  for(let attempt=0;attempt<6;attempt++){
+    const wait=_lastCall+_GAP-Date.now();if(wait>0)await sleep(wait);
+    _lastCall=Date.now();
     const res=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({system,prompt})});
-    if(res.status===429){await sleep(2500*(attempt+1));continue;} // free-tier rate limit: wait & retry
+      body:JSON.stringify(model?{system,prompt,model}:{system,prompt})});
+    if(res.status===429){await sleep(Math.min(30000,6000*(attempt+1)));continue;} // wait out the per-minute cap
     if(!res.ok){let m="HTTP "+res.status;try{const e=await res.json();if(e.error)m=e.error;}catch(_){}throw new Error(m);}
     const d=await res.json();return d.text||"";
   }
-  throw new Error("Rate limited by the free AI tier. Wait a minute and retry, or reduce the word count / number of references.");
+  throw new Error("Still rate-limited after several retries. The free tier has a per-minute cap — wait about a minute and click Forge again, or use a smaller word count / fewer references.");
 }
 function parseJSON(t){let s=t.replace(/```json/gi,'').replace(/```/g,'').trim();const a=s.indexOf('{'),b=s.lastIndexOf('}');if(a>=0&&b>=0)s=s.slice(a,b+1);return JSON.parse(s);}
 
@@ -280,23 +326,33 @@ let REFS=[],PAPER={},JOURNALS=[];
 
 $('#go').onclick=async()=>{
   const title=$('#title').value.trim();
-  if(!title){toast("Enter a paper title first");$('#title').focus();return;}
+  if(!title){toast("Enter a title first");$('#title').focus();return;}
+  const MODE=curMode(), MODE_KEY=$('#mode').value, MODE_LABEL=MODE.label, lang=$('#lang').value;
+  if(!MODE.refs){return generateCreative(MODE,title,lang);}
   const words=Math.min(15000,+$('#words').value||4000), fromYear=+$('#fromyear').value, nrefs=+$('#nrefs').value;
   const style=$('#style').value, nFigs=+$('#figs').value, nTables=+$('#tables').value;
   const email=$('#email').value.trim(), oakey=$('#oakey').value.trim();
   $('#style2').value=style;
   $('#err').classList.remove('on');$('#out').classList.remove('on');$('#progress').classList.add('on');$('#go').disabled=true;renderSteps(0);
   try{
-    // 1) plan (titles only; no numbers, no Methodology — app inserts it)
-    const planSys="You are a senior academic editor and review methodologist. Return ONLY valid minified JSON.";
+    // 1) plan (titles only; no numbering; app inserts Methodology for reviews)
+    const planSys="You are a senior academic editor. Return ONLY valid minified JSON.";
     const bodyBudget=Math.max(1200,words-350);
-    const planPrompt=`Plan a Q1-quality literature review titled: "${title}". Body target ~${bodyBudget} words (excludes abstract & methodology, which are handled separately).
+    const structHint={
+      review:"a literature-review arc (Introduction, thematic sections, Discussion, Future directions, Conclusion)",
+      research:"a research-paper arc (Introduction, Related Work, Methodology, Results, Discussion, Conclusion) — Methodology and Results will be placeholders for the author's own work",
+      editorial:"a concise editorial/opinion arc (engaging opening, the core argument across 2-4 sections, counterpoints, a call to action)",
+      chapter:"a textbook/book-chapter arc (Introduction, core concept sections building up, worked perspectives, Summary)"
+    }[MODE_KEY]||"a clear academic arc";
+    const planPrompt=`Plan a Q1-quality ${MODE_LABEL} titled: "${title}". Write in ${lang}. Body target ~${bodyBudget} words. Use ${structHint}.
 Return JSON:
-{"queries":["5-7 concise scholarly search-query strings (3-6 words each) spanning the key subtopics"],
+{"queries":["5-7 concise scholarly search-query strings in English (3-6 words each) spanning the key subtopics"],
 "outline":[{"heading":"section TITLE only, no numbering","words":<int 350-1800>}],
 "keywords":["6-10 index keywords"]}
 The first section MUST be "Introduction" and the last MUST be "Conclusion". Use 6-10 top-level sections total with NO sub-sections. Section "words" must sum to roughly ${bodyBudget}.`;
-    const plan=parseJSON(await askAI(planPrompt,planSys));
+    const plan=parseJSON(await askAI(planPrompt,planSys,M_STRUCT));
+    plan.outline=(plan.outline||[]).map((s,i)=>({heading:(s.heading||s.title||s.section||s.name||('Section '+(i+1))),words:(s.words||s.length||450)}));
+    if(!plan.queries||!plan.queries.length)plan.queries=[title];
     renderSteps(1);
 
     // 2) references
@@ -319,7 +375,7 @@ The first section MUST be "Introduction" and the last MUST be "Conclusion". Use 
     const STOP=new Set("the a an of and or to in for on with from by as is are at this that these those have been can may also more such using based review study studies paper results approach approaches between within across their there which while when than then over into about".split(' '));
     const toks=s=>(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>3&&!STOP.has(w));
     const numBody=plan.outline.length;
-    const cap=Math.ceil(REFS.length/numBody)+18;
+    const cap=Math.min(22,Math.ceil(REFS.length/numBody)+12);
     const secTokens=plan.outline.map(s=>new Set(toks(s.heading+' '+title)));
     const refTokens=REFS.map(r=>toks(r.title+' '+(r.abstract||'').slice(0,300)));
     const assign=plan.outline.map(()=>[]);
@@ -329,47 +385,71 @@ The first section MUST be "Introduction" and the last MUST be "Conclusion". Use 
       for(const o of order){if(assign[o[0]].length<cap){assign[o[0]].push(i);placed=true;break;}}
       if(!placed){let m=0;for(let s=1;s<assign.length;s++)if(assign[s].length<assign[m].length)m=s;assign[m].push(i);}
     }
-    const digestFor=idxs=>idxs.map(i=>`[${i+1}] ${REFS[i].title} (${REFS[i].year}). ${(REFS[i].abstract||'').slice(0,200)}`).join("\n");
-    const topDigest=REFS.slice(0,Math.min(24,REFS.length)).map((r,i)=>`[${i+1}] ${r.title} (${r.year}). ${(r.abstract||'').slice(0,200)}`).join("\n");
+    const digestFor=idxs=>idxs.map(i=>`[${i+1}] ${REFS[i].title} (${REFS[i].year}). ${(REFS[i].abstract||'').slice(0,140)}`).join("\n");
+    const topDigest=REFS.slice(0,Math.min(16,REFS.length)).map((r,i)=>`[${i+1}] ${r.title} (${r.year}). ${(r.abstract||'').slice(0,140)}`).join("\n");
 
     // 3) write sections (chunked, no subheadings, accurate citations)
-    const writeSys=`You are writing a Q1-journal literature review. STRICT RULES: (1) cite ONLY the numbered sources, placing each bracket citation [n] (or [n,m]) IMMEDIATELY after the specific claim it supports — never bunch them at paragraph ends; (2) never invent citations, statistics, or data; (3) write your own formal academic wording, do NOT copy source sentences; (4) NO subheadings, NO bullet lists — continuous analytical prose that compares findings and identifies gaps.`;
+    const writeSys=`You are writing a Q1-quality ${MODE_LABEL} in ${lang}. STRICT RULES: (1) you MUST cite the numbered sources frequently — almost every sentence stating a finding needs a bracket citation; place each [n] (or [n,m]) IMMEDIATELY after the specific claim it supports, never bunched at paragraph ends. Example: "efficiency surpassed 25% [3], yet stability stayed limited [3,7]." (2) cite ONLY the provided numbers; never invent citations, statistics, or data; (3) use your own formal wording in ${lang}, do NOT copy source sentences; (4) NO subheadings, NO bullet lists — continuous analytical prose. Bracket citation numbers stay as digits regardless of language.`;
     const sections=[];
     for(let si=0;si<plan.outline.length;si++){
       const sec=plan.outline[si];renderSteps(2,`Section ${si+1} of ${plan.outline.length}: ${sec.heading}`);
       const secIdxs=assign[si].length?assign[si]:REFS.map((_,k)=>k).slice(0,Math.min(15,REFS.length));
       const secDigest=digestFor(secIdxs);
       const target=Math.max(300,Math.min(1800,sec.words||450));
-      let acc='';let chunks=0;const maxChunks=4;
-      while(wc(acc)<target-130 && chunks<maxChunks){
-        const thisT=Math.min(600,target-wc(acc));const tail=acc.slice(-1100);
+      let acc='';let chunks=0;const maxChunks=3;let stalled=false;
+      while(wc(acc)<target-150 && chunks<maxChunks){
+        const thisT=Math.min(1000,target-wc(acc));const tail=acc.slice(-1100);
         const cont=acc?`Continue the SAME section seamlessly (~${thisT} more words). Do not repeat earlier content; do not add a heading. Text so far (tail):\n"""${tail}"""\n`:'';
         const p=`${acc?'':'Write '}the section "${sec.heading}" (~${thisT} words) for a review titled "${title}".\n${cont}Numbered sources you may cite in THIS section (cite as many as naturally fit; each [n] right after the claim it supports):\n${secDigest}\nOutput ONLY prose.`;
-        const part=await askAI(p,writeSys);acc+=(acc?'\n\n':'')+part.trim();chunks++;
+        try{const part=await askAI(p,writeSys);acc+=(acc?'\n\n':'')+part.trim();chunks++;}
+        catch(e){stalled=true;break;} // keep what we have, move on — don't lose the whole paper
       }
-      sections.push({heading:sec.heading,body:acc.trim()});
+      sections.push({heading:sec.heading,body:acc.trim()||"[This section could not be generated — the free AI tier was rate-limited. Re-run, reduce the word count, or upgrade for higher limits.]",stalled});
+      if(stalled)toast("Rate-limited mid-run — keeping the draft so far");
     }
     renderSteps(3);
 
-    // tables (varied focus)
+    // tables (varied focus) — 70b for clean JSON, with a real-data fallback so a table always appears
     const focuses=["methods and approaches","key findings and outcomes","datasets or materials used","reported performance metrics","limitations and research gaps","applications or case studies"];
+    function autoTable(focus){
+      const top=REFS.slice(0,Math.min(8,REFS.length));
+      return {caption:`Overview of key retained studies (${focus}).`,
+        columns:["Ref","Lead author","Journal","Year","Citations"],
+        rows:top.map((r,i)=>[`[${i+1}]`,(r.authors[0]?parseName(r.authors[0]).last+' et al.':'—'),r.journal||'—',String(r.year||'—'),String(r.cites)])};
+    }
     const tables=[];
     for(let k=0;k<nTables;k++){
       renderSteps(3,`Building table ${k+1} of ${nTables}`);
-      const tSys="You are an academic editor. Return ONLY valid minified JSON.";
+      const tSys="You are an academic editor. Return ONLY valid minified JSON, no prose, no backticks.";
       const tP=`Build ONE comparison table focused on "${focuses[k%focuses.length]}" for a review on "${title}", using only these numbered sources:\n${topDigest}\nReturn JSON {"caption":"...","columns":["Study [ref]","${focuses[k%focuses.length]}","Key point","Year"],"rows":[["[n] First-author et al.","...","...","year"]]}. 5-8 rows, only real info, reference each row with its [n].`;
-      try{tables.push(parseJSON(await askAI(tP,tSys)));}catch(e){}
+      try{const t=parseJSON(await askAI(tP,tSys,M_STRUCT));if(!t.rows||!t.rows.length)throw 0;tables.push(t);}catch(e){tables.push(autoTable(focuses[k%focuses.length]));}
     }
-    // extra figure placeholders (beyond PRISMA + chart)
-    const extraFigs=Math.max(0,nFigs-2);let figCaps=[];
-    if(extraFigs>0){
-      try{const fc=parseJSON(await askAI(`Propose ${extraFigs} conceptual/schematic figure ideas (NOT data plots) for a review titled "${title}". Return JSON {"figures":["one-sentence caption", ...]} with exactly ${extraFigs} items.`,"Return ONLY valid minified JSON."));figCaps=fc.figures||[];}catch(e){}
-    }
-    while(figCaps.length<extraFigs)figCaps.push("Conceptual overview relevant to this review.");
 
-    // abstract
+    // extra figures: fill requested slots with REAL data charts first, then placeholders
+    const venueCounts={};for(const r of REFS){if(r.journal)venueCounts[r.journal]=(venueCounts[r.journal]||0)+1;}
+    const extraChartDefs=[];
+    if(REFS.length>=3)extraChartDefs.push({cap:"Citation counts of the most-cited retained studies (live OpenAlex data).",pairs:REFS.slice(0,Math.min(8,REFS.length)).map((r,i)=>['['+(i+1)+']',r.cites])});
+    const vEntries=Object.entries(venueCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    if(vEntries.length>=2)extraChartDefs.push({cap:"Distribution of the retained studies across the most frequent journals.",pairs:vEntries});
+    const extraNeeded=Math.max(0,nFigs-2);
+    const phNeeded=Math.max(0,extraNeeded-extraChartDefs.length);
+    let figCaps=[];
+    if(phNeeded>0){
+      renderSteps(3,"Proposing figure concepts");
+      try{const fc=parseJSON(await askAI(`Propose ${phNeeded} conceptual/schematic figure ideas (NOT data plots) for a review titled "${title}". Return JSON {"figures":["one-sentence caption", ...]} with exactly ${phNeeded} items.`,"Return ONLY valid minified JSON.",M_STRUCT));figCaps=fc.figures||[];}catch(e){}
+    }
+    while(figCaps.length<phNeeded)figCaps.push("Conceptual overview relevant to this review.");
+    const extraFigures=[];
+    for(let k=0;k<extraNeeded;k++){
+      if(k<extraChartDefs.length)extraFigures.push({kind:'chart',cap:extraChartDefs[k].cap,pairs:extraChartDefs[k].pairs});
+      else extraFigures.push({kind:'ph',cap:figCaps[k-extraChartDefs.length]||"Conceptual overview relevant to this review."});
+    }
+
+    // abstract (70b for quality)
     renderSteps(3,"Writing abstract");
-    const abstract=(await askAI(`Write a single-paragraph structured abstract (~190 words), formal, original wording, NO citations, for the review "${title}". Themes:\n${sections.map(s=>s.heading+': '+s.body.slice(0,150)).join("\n").slice(0,1800)}`,"You are an academic editor.")).trim();
+    let abstract="";
+    try{abstract=(await askAI(`Write a single-paragraph structured abstract (~190 words), formal, original wording, NO citations, for the review "${title}". Themes:\n${sections.map(s=>s.heading+': '+s.body.slice(0,150)).join("\n").slice(0,1800)}`,"You are an academic editor.",M_STRUCT)).trim();}
+    catch(e){abstract=`This review examines ${title}. It synthesises recent peer-reviewed literature retrieved from the OpenAlex database, organised across ${sections.length} thematic sections covering ${(plan.keywords||[]).slice(0,5).join(', ')}. (Abstract auto-summarised; the AI tier was rate-limited — regenerate for a fuller abstract.)`;}
 
     renderSteps(4);
     // journals from real OpenAlex source data
@@ -381,8 +461,8 @@ The first section MUST be "Introduction" and the last MUST be "Conclusion". Use 
     // methodology text (deterministic — accurate)
     const methodology=`A structured search of the OpenAlex scholarly database (over 250 million indexed works) was conducted for literature published from ${fromYear} onward, restricted to peer-reviewed journal articles. The search combined the following thematic query strings: ${plan.queries.map(q=>'\u201c'+q+'\u201d').join(', ')}. This identified ${prisma.identified} records; after removal of duplicates, ${prisma.afterDedup} unique records remained. Records were then ranked by topical relevance and citation impact, and the ${prisma.included} most pertinent were retained for qualitative synthesis. The selection workflow is summarised in Figure 1, and the temporal distribution of the retained literature is shown in Figure 2.`;
 
-    PAPER={title,abstract,sections,tables,figCaps,prisma,methodology,keywords:plan.keywords||[],nFigs};
-    render(style);renderJournals();
+    PAPER={title,abstract,sections,tables,extraFigures,prisma,methodology,keywords:plan.keywords||[],nFigs,wantPrisma:MODE.prisma};
+    render(style);if(MODE.journals){renderJournals();}else{$('#journalsPanel').style.display='none';}
     $('#out').classList.add('on');$('#progress').classList.remove('on');
     setTimeout(()=>$('#out').scrollIntoView({behavior:'smooth'}),100);
   }catch(e){
@@ -448,6 +528,11 @@ function prismaSVG(p){
     ${box(260,50,`Studies included in\nreview (n = ${p.included})`)}
   </svg>`;
 }
+function barChartPairs(pairs){if(!pairs||!pairs.length)return '';const max=Math.max(...pairs.map(p=>p[1]),1);const W=560,H=210,pad=34,bw=(W-pad*2)/pairs.length;let bars='',labs='';
+  pairs.forEach((p,i)=>{const h=(p[1]/max)*(H-pad*2);const bx=pad+i*bw+bw*0.15,bwid=bw*0.7,by=H-pad-h;
+    bars+=`<rect class="bar" x="${bx}" y="${by}" width="${bwid}" height="${h}" rx="3"/><text x="${bx+bwid/2}" y="${by-5}" text-anchor="middle">${p[1]}</text>`;
+    labs+=`<text x="${bx+bwid/2}" y="${H-pad+15}" text-anchor="middle">${esc(String(p[0]).slice(0,11))}</text>`;});
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" width="100%"><line class="axis" x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}"/>${bars}${labs}</svg>`;}
 function chartSVG(y){const years=Object.keys(y).map(Number).sort((a,b)=>a-b);if(!years.length)return '';
   const max=Math.max(...years.map(k=>y[k]));const W=560,H=210,pad=32,bw=(W-pad*2)/years.length;let bars='',labs='';
   years.forEach((yr,i)=>{const h=(y[yr]/max)*(H-pad*2);const bx=pad+i*bw+bw*0.15,bwid=bw*0.7,by=H-pad-h;
@@ -466,7 +551,7 @@ function render(style){
   const thematic=[];for(let i=1;i<out.length-1;i++)thematic.push(i);if(!thematic.length)for(let i=0;i<out.length;i++)thematic.push(i);
   const inserts=out.map(()=>[]);
   p.tables.forEach((t,k)=>inserts[thematic[k%thematic.length]].push({type:'table',data:t}));
-  p.figCaps.forEach((c,k)=>inserts[thematic[(k+1)%thematic.length]].push({type:'figure',cap:c}));
+  (p.extraFigures||[]).forEach((f,k)=>inserts[thematic[(k+1)%thematic.length]].push({type:'figure',fig:f}));
 
   let html=`<div class="title">${esc(p.title)}</div><div class="byline">Review draft · ReviewForge · ${REFS.length} verified references</div>`;
   html+=`<h2>Abstract</h2><div class="abstract"><p>${esc(p.abstract)}</p></div>`;
@@ -479,10 +564,13 @@ function render(style){
     // section inserts
     for(const ins of inserts[idx]){
       if(ins.type==='table'){tab++;html+=`<figure>${tableHTML(ins.data)}<figcaption><b>Table ${tab}.</b> ${esc(ins.data.caption||'Comparison of reviewed studies.')}</figcaption></figure>`;}
-      else{fig++;html+=`<figure><div class="figbox"><div class="ph">FIGURE PLACEHOLDER</div>${esc(ins.cap)}</div><figcaption><b>Figure ${fig}.</b> ${esc(ins.cap)} — <i>insert your own figure; ReviewForge does not fabricate data figures.</i></figcaption></figure>`;}
+      else{fig++;const f=ins.fig;
+        if(f.kind==='chart'){html+=`<figure>${barChartPairs(f.pairs)}<figcaption><b>Figure ${fig}.</b> ${esc(f.cap)}</figcaption></figure>`;}
+        else{html+=`<figure><div class="figbox"><div class="ph">FIGURE PLACEHOLDER</div>${esc(f.cap)}</div><figcaption><b>Figure ${fig}.</b> ${esc(f.cap)} — <i>insert your own figure; ReviewForge does not fabricate data figures.</i></figcaption></figure>`;}
+      }
     }
-    // after Introduction (idx 0) inject Methodology with PRISMA + chart
-    if(idx===0){
+    // after Introduction (idx 0): inject Methodology + PRISMA (review mode only)
+    if(idx===0 && p.wantPrisma){
       secNo++;
       html+=`<h2>${secNo}. Methodology</h2>`;
       for(const para of p.methodology.split(/\n{1,}/).filter(x=>x.trim()))html+=`<p>${esc(para)}</p>`;
@@ -502,7 +590,9 @@ function render(style){
 
 // ---------- toolbar ----------
 $('#style2').addEventListener('change',()=>{if(PAPER.title){render($('#style2').value);renderJournals();toast("References re-styled");}});
-function plainPaper(){const style=$('#style2').value,p=PAPER;let s=p.title+"\n\nABSTRACT\n"+p.abstract+"\n";
+function plainPaper(){
+  if(CREATIVE&&(!PAPER||!PAPER.sections)){let s=CREATIVE.title+"\n\n";CREATIVE.parts.forEach((p,i)=>{s+=`${i+1}. ${p.heading}\n${p.body}\n\n`;});return s;}
+  const style=$('#style2').value,p=PAPER;let s=p.title+"\n\nABSTRACT\n"+p.abstract+"\n";
   if(p.keywords.length)s+="\nKeywords: "+p.keywords.join('; ')+"\n";
   let n=0;s+=`\n${++n}. Introduction\n`+(p.sections[0]?p.sections[0].body:'')+"\n";
   s+=`\n${++n}. Methodology\n`+p.methodology+`\n[Figure: PRISMA flow — identified ${p.prisma.identified}, after dedup ${p.prisma.afterDedup}, excluded ${p.prisma.excluded}, included ${p.prisma.included}]\n`;
@@ -513,6 +603,111 @@ function plainPaper(){const style=$('#style2').value,p=PAPER;let s=p.title+"\n\n
   return s;}
 $('#copyBtn').onclick=()=>navigator.clipboard.writeText(plainPaper()).then(()=>toast("Whole draft copied")).catch(()=>toast("Copy failed"));
 $('#dlBtn').onclick=()=>{const b=new Blob([plainPaper()],{type:'text/markdown'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='review-draft.md';a.click();toast("Downloaded .md");};
+
+// ---------- creative / no-reference writing ----------
+async function generateCreative(MODE,title,lang){
+  const words=Math.min(15000,+$('#words').value||3000);
+  $('#err').classList.remove('on');$('#out').classList.remove('on');$('#progress').classList.add('on');$('#go').disabled=true;
+  $('#journalsPanel').style.display='none';
+  renderStepsC(0);
+  try{
+    const isReview=MODE_KEYOf()==='bookreview';
+    const planSys="You are a master writer and editor. Return ONLY valid minified JSON.";
+    const planPrompt=isReview
+      ? `Plan a thoughtful book review of: "${title}". Language: ${lang}. ~${words} words. Return JSON {"outline":[{"heading":"section title","words":<int>}]} with sections like Introduction/overview, Summary (no spoilers beyond setup), Strengths, Weaknesses/critique, Verdict & recommendation.`
+      : `Plan an original ${MODE.label} based on this premise: "${title}". Language: ${lang}. ~${words} words. Return JSON {"outline":[{"heading":"chapter or scene title","words":<int>}]} with 4-10 well-paced parts. No references, no citations.`;
+    const plan=parseJSON(await askAI(planPrompt,planSys,M_STRUCT));
+    const outline=(plan.outline||[]).map((s,i)=>({heading:s.heading||s.title||('Part '+(i+1)),words:s.words||500}));
+    if(!outline.length)throw new Error("Couldn't plan the piece — try rephrasing the brief.");
+
+    const sys=isReview
+      ? `You are writing a balanced, insightful book review in ${lang}. Formal but engaging prose. NO references or citations. NO subheadings inside a section.`
+      : `You are an award-winning novelist writing in ${lang}. Vivid, immersive, original prose with strong voice, sensory detail and natural dialogue. NO references, NO citations, NO subheadings, NO meta commentary — just the story.`;
+    const parts=[];
+    for(let si=0;si<outline.length;si++){
+      const sec=outline[si];renderStepsC(0,`Part ${si+1} of ${outline.length}: ${sec.heading}`);
+      const target=Math.max(300,Math.min(2000,sec.words||500));
+      let acc='';let chunks=0;const maxChunks=3;let stalled=false;
+      while(wc(acc)<target-150 && chunks<maxChunks){
+        const thisT=Math.min(1000,target-wc(acc));const tail=acc.slice(-1200);
+        const cont=acc?`Continue seamlessly (~${thisT} more words); do not repeat; no heading. So far (tail):\n"""${tail}"""\n`:'';
+        const p=`${acc?'':'Write '}the part titled "${sec.heading}" (~${thisT} words) of "${title}", in ${lang}.\n${cont}Output ONLY the prose.`;
+        try{const part=await askAI(p,sys);acc+=(acc?'\n\n':'')+part.trim();chunks++;}
+        catch(e){stalled=true;break;}
+      }
+      parts.push({heading:sec.heading,body:acc.trim()||"[This part could not be generated — the free tier was rate-limited. Re-run or shorten.]"});
+      if(stalled)toast("Rate-limited mid-run — keeping what's written");
+    }
+    CREATIVE={title,parts,lang,label:MODE.label};
+    renderCreative();
+    $('#out').classList.add('on');$('#progress').classList.remove('on');
+    setTimeout(()=>$('#out').scrollIntoView({behavior:'smooth'}),100);
+  }catch(e){$('#progress').classList.remove('on');$('#err').textContent="Couldn't finish: "+e.message;$('#err').classList.add('on');}
+  finally{$('#go').disabled=false;}
+}
+function MODE_KEYOf(){return $('#mode').value;}
+let CREATIVE=null;
+function renderStepsC(active,sub){$('#steps').innerHTML=`<div class="pstep active"><span class="ic"></span>Planning & writing${sub?' — '+esc(sub):''}</div>`;}
+function renderCreative(){
+  const c=CREATIVE;let n=0;
+  let html=`<div class="title">${esc(c.title)}</div><div class="byline">${esc(c.label)} · ${esc(c.lang)} · ${c.parts.length} parts</div>`;
+  for(const p of c.parts){n++;html+=`<h2>${n}. ${esc(p.heading)}</h2>`;for(const para of p.body.split(/\n{1,}/).filter(x=>x.trim()))html+=`<p style="text-align:left">${esc(para)}</p>`;}
+  $('#doc').innerHTML=html;
+  const words=$('#doc').innerText.split(/\s+/).filter(Boolean).length;
+  $('#wordbadge').innerHTML=`<b>${words.toLocaleString()}</b> words · ${c.parts.length} parts`;
+  PAPER={}; // creative mode: disable reference re-styling
+}
+
+// ---------- discovery: real journals + links to genuine calls for papers ----------
+$('#dGo').onclick=async()=>{
+  const theme=$('#dTheme').value.trim();
+  if(!theme){toast("Enter a subject or theme");$('#dTheme').focus();return;}
+  const apcFree=$('#dApc').value==='free', minH=+$('#dTier').value;
+  const email=$('#email').value.trim(), oakey=$('#oakey').value.trim();
+  $('#dErr').classList.remove('on');$('#dResults').innerHTML='<div class="pstep active"><span class="ic"></span>Searching live journal data…</div>';$('#dCFP').innerHTML='';$('#dGo').disabled=true;
+  try{
+    // find works on the theme -> collect their journals (topically relevant), then fetch source metadata
+    const works=await searchWorks(theme,NOW-6,40,email,oakey);
+    const ids=[...new Set(works.map(w=>{const s=w.primary_location&&w.primary_location.source;return s&&s.id?s.id.split('/').pop():null;}).filter(Boolean))].slice(0,16);
+    const metas=[];for(const id of ids){const m=await fetchSource(id,email,oakey);if(m&&(m.type==='journal'||!m.type))metas.push(m);}
+    // build cards
+    const byPub={};const cards=[];
+    for(const m of metas){
+      const apc=(m.apc_usd===0||m.apc_usd==null)?0:m.apc_usd;const noApc=apc===0;
+      if(apcFree && !noApc) continue;
+      const h=(m.summary_stats&&m.summary_stats.h_index)||0;
+      if(h<minH) continue;
+      const pub=m.host_organization_name||"Independent / society";
+      if(byPub[pub]) continue; byPub[pub]=true;
+      let model = m.is_oa&&m.is_in_doaj&&noApc?"Diamond OA · no APC" : (m.is_oa&&apc>0?`Gold OA · APC ~$${apc.toLocaleString()}` : (m.is_oa?"Open access (DOAJ)":"Subscription / likely hybrid · no APC to publish"));
+      const tier = h>=80?"~Q1 (high impact)":h>=40?"~Q1–Q2":h>=15?"~Q2–Q3":"emerging";
+      cards.push({name:m.display_name,pub,model,noApc,h,tier,issn:m.issn_l||''});
+    }
+    cards.sort((a,b)=>(b.noApc-a.noApc)||(b.h-a.h));
+    if(!cards.length){$('#dResults').innerHTML=`<div class="secnote">No matching journals came back for those filters. Try a broader theme or set the fee filter to "Any".</div>`;}
+    else $('#dResults').innerHTML=cards.slice(0,10).map(j=>{
+      const sci=`https://www.scimagojr.com/journalsearch.php?q=${encodeURIComponent(j.name)}`;
+      return `<div class="jcard"><div class="top"><div><div class="n">${esc(j.name)}</div><div class="pub">${esc(j.pub)}</div></div><a class="verify" href="${sci}" target="_blank" rel="noopener">Check Scopus/quartile ↗</a></div>
+        <div class="meta"><span class="pillm ${j.noApc?'free':'apc'}">${esc(j.model)}</span><span class="pillm h">tier ${esc(j.tier)}</span>${j.h?`<span class="pillm h">h-index ${j.h}</span>`:''}${j.issn?`<span class="pillm">ISSN ${esc(j.issn)}</span>`:''}</div></div>`;
+    }).join('')+`<p class="secnote">Tier is a rough estimate from impact data — OpenAlex does <b>not</b> certify Scopus quartiles. Confirm indexing, quartile and current APC via each "Check Scopus" link before submitting.</p>`;
+    // genuine CFP sources (real pages, pre-searched for the theme)
+    const q=encodeURIComponent(theme);
+    const cfp=[
+      ["MDPI special issues",`https://www.mdpi.com/search?q=${q}&journal=&article_type=&search=Search&page_count=50&sort=pubdate&view=default&type=special_issue`],
+      ["Springer (Call for papers)",`https://link.springer.com/search?query=${q}+call+for+papers`],
+      ["Elsevier / ScienceDirect calls",`https://www.sciencedirect.com/search?qs=${q}%20call%20for%20papers`],
+      ["Wiley special issues",`https://onlinelibrary.wiley.com/action/doSearch?AllField=${q}+special+issue`],
+      ["Taylor & Francis CFPs",`https://www.tandfonline.com/action/doSearch?AllField=${q}+call+for+papers`],
+      ["WikiCFP (aggregator)",`http://www.wikicfp.com/cfp/servlet/tool.search?q=${q}&year=t`]
+    ];
+    $('#dCFP').innerHTML=`<div class="jcard"><div class="n" style="margin-bottom:8px">Browse real, current calls for papers</div>
+      <div class="meta">${cfp.map(c=>`<a class="verify" href="${c[1]}" target="_blank" rel="noopener">${esc(c[0])} ↗</a>`).join('')}</div>
+      <p class="secnote" style="margin-top:10px">These open the publishers' own live CFP / special-issue pages, pre-searched for "<b>${esc(theme)}</b>". Deadlines and scope are shown there directly — nothing here is AI-generated.</p></div>`;
+  }catch(e){
+    const msg=e.message==="OPENALEX_KEY"?"OpenAlex needs a free API key for this — add one in Advanced → OpenAlex API key.":e.message;
+    $('#dErr').textContent="Couldn't search: "+msg;$('#dErr').classList.add('on');$('#dResults').innerHTML='';
+  }finally{$('#dGo').disabled=false;}
+};
 </script>
 </body>
 </html>
