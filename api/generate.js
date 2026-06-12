@@ -23,8 +23,8 @@ export default async function handler(req, res) {
     }
 
     // Free models (no credit card):
-    //   llama-3.3-70b-versatile  -> recommended: best quality for academic prose
-    //   llama-3.1-8b-instant     -> faster / lighter
+    //   llama-3.1-8b-instant     -> DEFAULT: far higher free limits (~30k TPM, ~14.4k req/day) = reliable
+    //   llama-3.3-70b-versatile  -> better prose, but tight free cap (~6k TPM, ~1k req/day) = rate-limits on big papers
     const m = model || "llama-3.1-8b-instant";
 
     const messages = [];
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { "content-type": "application/json", "authorization": "Bearer " + apiKey },
-      body: JSON.stringify({ model: m, messages, temperature: 0.7, max_tokens: 2048 })
+      body: JSON.stringify({ model: m, messages, temperature: 0.7, max_tokens: 4096 })
     });
 
     const data = await r.json();
